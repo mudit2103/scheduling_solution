@@ -1,6 +1,9 @@
 # scheduling_solution
 Scheduling solution for my needs to match persons optimally to assignments based on 4 levels of preferences. 
 
+To get started, type `python scheduling_solution.py --help`. 
+An example for the input CSV file is available on the repository tmp.csv.
+
 A solution for scheduling hell! 
 
 Create a CSV with the following properties:
