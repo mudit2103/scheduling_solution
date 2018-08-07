@@ -107,7 +107,7 @@ def create_ilp(preferences_by_persons, counts_by_persons, counts_by_assignment, 
             constraints_by_assignment[assignment] += variable
 
     # Constraint that each person must be assigned one assignment.
-    persons_constraint = list({k: str_bounds_expr(v, bounds, counts_by_persons[k]) for 
+    persons_constraint = list({k: v == counts_by_persons[k] for 
                              (k, v) in constraints_by_persons.items()}.values())
     # Constraint that each assignment must have only one person.
     assignments_constraint = list({k: str_bounds_expr(v, bounds, counts_by_assignment[k]) for 
