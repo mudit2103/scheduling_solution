@@ -48,13 +48,18 @@ def parse_csv(filename, no_custom_counts=False, weights=WEIGHTS, ):
     df = pd.read_csv(filename)
     assignments = make_unique(df.Assignment)
     # Skip first element because it is the diagonal header.
+    # If counts are present, need to skip the first 2 rows.
     offset = 1 if no_custom_counts else 2
+
+    # We want persons to be uniquely identifiable by their name.
     persons = make_unique(df.columns.values.tolist()[offset:])
+
     if no_custom_counts:
         counts_by_persons = {person: 1 for person in persons}
     else:
         counts = df[0:1].values.tolist()[0][offset:]
         counts_by_persons = {person: int(count) for person, count in zip(persons, counts)}
+
 
     for index, row in df.iterrows():
         if index == 0 and not no_custom_counts: 
@@ -70,7 +75,7 @@ def parse_csv(filename, no_custom_counts=False, weights=WEIGHTS, ):
         preferences = row[offset:]
         for i, preference in enumerate(preferences):
             person = persons[i]
-            preference = weights[int(preference)]  # Negatively weigh the preference as specified in WEIGHTS.
+            preference = weights[int(preference)] 
             preferences_by_assignment[assignment].append((person, preference))
             preferences_by_persons[person].append((assignment, preference))
 
@@ -98,7 +103,7 @@ def create_ilp(preferences_by_persons, counts_by_persons, counts_by_assignment, 
     logging.debug("Creating variables")
     for person, item in preferences_by_persons.items():
         for assignment, preference in item:
-            variable = cvx.Bool()
+            variable = cvx.Variable(1, boolean=True)
             variables_by_persons[person].append((preference, assignment, variable))
             
             cost += preference * variable
@@ -107,9 +112,17 @@ def create_ilp(preferences_by_persons, counts_by_persons, counts_by_assignment, 
             constraints_by_assignment[assignment] += variable
 
     # Constraint that each person must be assigned one assignment.
+    # The way constraints are listed in CVXPY are in a list
+    # [x+y<=1, x+z==1, ...].
+    # The following creates a list of the form 
+    # [sum(person 1's variables) == person 1's count, 
+    #  sum(person 2's variables) == person 2's count,
+    #  ...]
     persons_constraint = list({k: v == counts_by_persons[k] for 
-                             (k, v) in constraints_by_persons.items()}.values())
+                             (k, v) in constraints_by_persons.items()}.values())    
+
     # Constraint that each assignment must have only one person.
+    # Works similarly as above.
     assignments_constraint = list({k: str_bounds_expr(v, bounds, counts_by_assignment[k]) for 
                                  (k, v) in constraints_by_assignment.items()}.values())
     logging.debug("Created constraints.")
